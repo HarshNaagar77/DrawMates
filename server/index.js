@@ -55,10 +55,16 @@ io.on('connection', (socket) => {
         socket.join(roomName);
     });
 
+
     // Listen for drawing events and broadcast to room
     socket.on('drawing', ({ roomName, drawingData }) => {
         // Broadcast to all other users in the room
         socket.to(roomName).emit('drawing', { drawingData });
+    });
+
+    // Listen for clear-canvas event and broadcast to room
+    socket.on('clear-canvas', ({ roomName }) => {
+        socket.to(roomName).emit('clear-canvas');
     });
 
     socket.on('disconnect', (reason) => {

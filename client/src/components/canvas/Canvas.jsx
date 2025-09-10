@@ -1,22 +1,13 @@
 
 
+
 import React, { useCallback, useEffect, useRef, useState } from "react";
-  // Clear canvas function
-  const clearCanvas = () => {
-    if (context && canvasDiv) {
-      context.clearRect(0, 0, canvasDiv.width, canvasDiv.height);
-    }
-    // Optionally, emit clear event to room for collaborative clearing
-    if (roomName) {
-      socket.emit('clear-canvas', { roomName });
-    }
-  };
 import './Canvas.scss';
 import { useParams } from 'react-router-dom';
-import socket from '../../utils/socket';
-import eraserIcon from '../../assets/icons/eraser.svg';
-import penIcon from '../../assets/icons/pen.svg';
 
+import socket from '../../utils/socket';
+import penIcon from '../../assets/icons/pen.svg';
+import eraserIcon from '../../assets/icons/eraser.svg';
 
 const Canvas = () => {
   const [context, setContext] = useState(null);
@@ -32,6 +23,22 @@ const Canvas = () => {
   const roomName = useParams().roomName;
   const mouseDownRef = useRef(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
+
+  // Clear canvas function
+  const clearCanvas = () => {
+    console.log('clearCanvas called', { context, canvasDiv, roomName });
+    if (context && canvasDiv) {
+      context.clearRect(0, 0, canvasDiv.width, canvasDiv.height);
+      console.log('Canvas cleared');
+    } else {
+      console.warn('Context or canvasDiv not set');
+    }
+    // Optionally, emit clear event to room for collaborative clearing
+    if (roomName) {
+      socket.emit('clear-canvas', { roomName });
+      console.log('clear-canvas event emitted');
+    }
+  };
 
   // Set canvas context and canvas element ref
   const setCanvasRef = useCallback((element) => {
@@ -176,6 +183,16 @@ const Canvas = () => {
         {!isErasing && (
           <label className="canvas-color-label">
             <span>Color:</span>
+            <span className="color-preview" style={{
+              display: 'inline-block',
+              width: 20,
+              height: 20,
+              borderRadius: '4px',
+              border: '1.5px solid #888',
+              background: color,
+              margin: '0 8px',
+              verticalAlign: 'middle',
+            }} />
             <input type="color" value={color} onChange={e => setColor(e.target.value)} />
           </label>
         )}
@@ -247,6 +264,7 @@ const Canvas = () => {
           </svg>
         </div>
       )}
+
     </div>
   );
 };
