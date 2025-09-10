@@ -1,0 +1,27 @@
+// FONTS
+
+@import url('https://fonts.googleapis.com/css2?family=Gabarito:wght@400;500;600&display=swap');
+
+$bodyFont: 'Gabarito', sans-serif;
+
+// COLOR SCHEMES
+
+$mainBg: #ffffff;
+$subMainBg: #E1E3E3;
+$primary: #53d86a;
+$secondary: #fd3d39;
+$tertiary: #fe9526;
+$accentColor: #398bfd;
+$fontColor: #0a0f0c;
+
+// SPACING
+
+$spacingSmall: 8px;
+$spacingMedium: 16px;
+$spacingLarge: 24px;
+
+// BREAKPOINTS
+
+$mobileBreakpoint: 480px;
+$tabletBreakpoint: 768px;
+$desktopBreakpoint: 1024px;

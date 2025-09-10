@@ -1,0 +1,40 @@
+@import './variables';
+
+.form-container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    form {
+        padding: 1rem;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: $spacingSmall;
+        color: white;
+
+        .form-head{
+            display: flex;
+            align-items: center;
+            gap: $spacingMedium;
+            margin-bottom: $spacingSmall;
+
+            .form-heading{
+                font-size: 20px;
+                font-weight: 600;
+            }
+        }
+
+        .message{
+            font-size: 12px;
+            font-weight: 400;
+            text-align: center;
+
+            .hyperlink{
+                text-decoration: none;
+                color: $accentColor;
+            }
+        }
+    }
+}

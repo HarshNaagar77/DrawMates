@@ -1,0 +1,72 @@
+@import '../../styles/variables';
+
+.room-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #23272f 0%, #181c24 100%);
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+}
+
+.room-toolbar-bar {
+    width: 100vw;
+    min-height: 64px;
+    background: rgba(24, 28, 36, 0.98);
+    border-bottom: 1.5px solid #23272f;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2.5vw;
+    box-shadow: 0 2px 16px #0002;
+    z-index: 2;
+}
+.room-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 1.2em;
+}
+.room-title {
+    font-size: 1.25em;
+    font-weight: 600;
+    color: #f3f6fa;
+    letter-spacing: 0.01em;
+}
+.room-icon {
+    width: 36px;
+    height: 36px;
+}
+.room-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+}
+.room-close-btn {
+    background: #ff4d4f;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5em 1.2em;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #ff4d4f33;
+    transition: background 0.18s, box-shadow 0.18s;
+}
+.room-close-btn:hover {
+    background: #ff7875;
+    box-shadow: 0 4px 16px #ff787533;
+}
+.room-canvas-area {
+    flex: 1;
+    width: 100vw;
+    height: calc(100vh - 64px);
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    position: relative;
+    z-index: 1;
+}
