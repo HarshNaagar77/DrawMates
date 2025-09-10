@@ -6,6 +6,9 @@
     justify-content: space-between;
     gap: $spacingSmall;
     padding: 1rem;
+    padding-top: 0.5rem;
+    margin-left: 60px;
+    margin-right: 50px;
 
     .nav-right{
         .currentUser{
@@ -26,6 +29,7 @@
                 width: 30px;
                 height: 30px;
             }
+            
         }
     }
 }

@@ -193,7 +193,7 @@ const Canvas = () => {
               margin: '0 8px',
               verticalAlign: 'middle',
             }} />
-            <input type="color" value={color} onChange={e => setColor(e.target.value)} />
+            <input className="co" type="color" value={color} onChange={e => setColor(e.target.value)} />
           </label>
         )}
         {!isErasing && (

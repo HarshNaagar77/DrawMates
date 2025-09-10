@@ -5,6 +5,7 @@ import JoinRoom from "../../components/CreateRoom/JoinRoom";
 import { useSelector } from "react-redux";
 import socket from "../../utils/socket";
 import { Link } from "react-router-dom";
+import homeimg from "../../assets/home.png"
 
 const Home = () => {
 
@@ -28,12 +29,16 @@ const Home = () => {
 
     return (
         <div className="home-container">
-            <div className="welcome-section">
+            <div className="main1">
+                <img src={homeimg} alt="" />
+            </div>
+           <div className="main2">
+             <div className="welcome-section">
                 <div className="message-container">Welcome, {currentUser?.firstName} !</div>
+                <p className="des">Collaborate and draw together in real time on a shared online canvas.</p>
                 <div className="action-container">
-                    <button>New Canvas</button>
-                    <button onClick={openRoomModal}>New Room</button>
-                    <button onClick={openJoinModal}>Join Room</button>
+                    <button className="roombtn roombtn1" onClick={openRoomModal}>Personal Canvas</button>
+                    <button className="roombtn" onClick={openJoinModal}>Join Room</button>
                     {roomModal && <CreateRoom onClose={handleClose} />}
                     {joinModal && <JoinRoom onClose={handleClose} />}
                 </div>
@@ -48,6 +53,7 @@ const Home = () => {
                     </div>
                 </div> : ''
             }
+           </div>
         </div>
     )
 }

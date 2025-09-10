@@ -6,7 +6,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(135deg, #23272f 0%, #181c24 100%);
+    background: #23272f;
     display: flex;
     flex-direction: column;
     z-index: 1;
@@ -15,7 +15,7 @@
 .room-toolbar-bar {
     width: 100vw;
     min-height: 64px;
-    background: rgba(24, 28, 36, 0.98);
+    background: #181414;
     border-bottom: 1.5px solid #23272f;
     display: flex;
     align-items: center;
@@ -53,6 +53,7 @@
     font-size: 1em;
     font-weight: 500;
     cursor: pointer;
+    margin-left: -200px;
     box-shadow: 0 2px 8px #ff4d4f33;
     transition: background 0.18s, box-shadow 0.18s;
 }

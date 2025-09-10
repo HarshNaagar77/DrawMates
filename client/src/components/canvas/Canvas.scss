@@ -36,7 +36,7 @@
 .canvas-toolbar-bar {
     width: 100vw;
     min-height: 56px;
-    background: #111;
+    background: black;
     border-bottom: 1.5px solid #23272f;
     display: flex;
     align-items: center;
@@ -45,6 +45,10 @@
     padding: 0.5em 2vw 0.5em 2vw;
     box-shadow: 0 2px 16px #0002;
     z-index: 2;
+}
+
+.co{
+    margin-top: -1000px;
 }
 
 .canvas-toolbar {

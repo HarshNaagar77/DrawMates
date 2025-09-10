@@ -5,27 +5,48 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1em;
+    gap: 10em;
 
     .welcome-section {
         max-height: 300px;
-        max-width: 300px;
+        max-width: 400px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 1em;
 
+        .des{
+            color: white;
+            margin-top: -15px;
+            margin-left: -30px;
+        }
+
         .message-container {
             color: white;
-            font-size: 24px;
+            font-size: 60px;
+            font-weight: 900;
+            padding: 0;
+            text-align: left;
+            margin-left: 20px;
+            width: 500px;
         }
 
         .action-container {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             gap: 1em;
+        }
+        .roombtn{
+            width: 300%;
+            border-radius: 20px;
+        }
+        .roombtn1{
+            background-color: transparent;
+            color: rgb(84, 166, 233);
+            border: 2px solid rgb(84, 166, 233);
         }
     }
 
