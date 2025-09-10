@@ -96,11 +96,78 @@
 
 
 }
-    
+
 @media (max-width: 600px){
-    .home-container{
-        flex-direction: column;
-        gap: 3em;
-    }
-    
+        .home-container {
+            flex-direction: column;
+            gap: 1.5em;
+            align-items: stretch;
+            padding: 0.5em 0.5em 1.2em 0.5em;
+        }
+        .welcome-section {
+            max-width: 100vw;
+            padding: 0 0.5em;
+            align-items: stretch;
+            margin-top: 0.5em;
+            .logo {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-bottom: 0.7em;
+            }
+            img, svg {
+                max-width: 90vw;
+                height: auto;
+                margin-bottom: 1em;
+            }
+            .message-container {
+                font-size: 1.4em;
+                width: 100%;
+                margin-left: 100px;
+                margin-right: -130px;
+                text-align: center;
+                font-weight: 800;
+                line-height: 1.2;
+                padding: 0.2em 0 0.5em 0;
+            }
+            .des {
+                margin-left: 100px;
+                margin-top: 0.2em;
+                font-size: 1em;
+                text-align: center;
+                margin-right: -150px;
+                margin-bottom: 1em;
+            }
+            .roombtn {
+                width: 100%;
+                min-width: 220px;
+                max-width: 450px;
+                margin-left: 120px;
+                border-radius: 18px;
+                font-size: 1.15em;
+                padding: 1em 0;
+                display: block;
+            }
+            .roombtn1 {
+                font-size: 1.1em;
+            }
+            .action-container {
+                gap: 1em;
+            }
+        }
+        .roomlist-container {
+            max-width: 98vw;
+            padding: 0.7em 0.5em;
+            border-radius: 8px;
+            .roomslist-heading {
+                font-size: 1.1em;
+            }
+            .rooms-list {
+                gap: 0.5em;
+                .active-room {
+                    font-size: 0.98em;
+                    padding: 0.4em 0.7em;
+                }
+            }
+        }
 }

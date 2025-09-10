@@ -33,3 +33,10 @@
         }
     }
 }
+
+@media (max-width: 600px){
+    .navbar-container {
+        margin-left: 40px;
+        width: 100%;
+    }
+}
