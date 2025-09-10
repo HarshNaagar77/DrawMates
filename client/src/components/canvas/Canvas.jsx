@@ -11,6 +11,7 @@ import eraserIcon from '../../assets/icons/eraser.svg';
 
 const Canvas = () => {
   const [context, setContext] = useState(null);
+  const [toolbarOpen, setToolbarOpen] = useState(false);
   const [canvasDiv, setCanvasDiv] = useState(null);
   const [color, setColor] = useState('#ffffff');
   const [isErasing, setIsErasing] = useState(false);
@@ -163,23 +164,34 @@ const Canvas = () => {
     }
   };
 
+  // Detect if mobile (window width <= 600px)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+
   return (
     <div className="canvas-container" id={canvasParentId}>
-      <div className="canvas-toolbar-bar">
+      {isMobile && (
+        <button
+          className="canvas-toolbar-toggle"
+          onClick={() => setToolbarOpen((open) => !open)}
+        >
+          {toolbarOpen ? 'Hide Tools' : 'Show Tools'}
+        </button>
+      )}
+      <div className={`canvas-toolbar-bar${isMobile ? (toolbarOpen ? ' open' : ' closed') : ''}`}> 
         <button
           className={`canvas-toolbar-btn${!isErasing ? ' active' : ''}`}
           title="Pen"
           onClick={() => setIsErasing(false)}
         >
-          <img src={penIcon} alt="Pen" className="canvas-toolbar-icon" style={{ filter: !isErasing ? 'none' : 'grayscale(1)' }} />
+          <i class="bi bi-pencil-fill"></i>
         </button>
         <button
           className={`canvas-toolbar-btn${isErasing ? ' active' : ''}`}
           title="Eraser"
           onClick={() => setIsErasing(true)}
         >
-          <img src={eraserIcon} alt="Eraser" className="canvas-toolbar-icon" style={{ filter: isErasing ? 'none' : 'grayscale(1)' }} />
-        </button>
+          <i class="bi bi-eraser-fill"></i>
+          </button>
         {!isErasing && (
           <label className="canvas-color-label">
             <span>Color:</span>
@@ -223,15 +235,12 @@ const Canvas = () => {
           </label>
         )}
         <button
+
           className="canvas-toolbar-btn canvas-clear-btn"
           title="Clear Canvas"
           onClick={clearCanvas}
         >
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="6" width="16" height="12" rx="2" fill="#ff4d4f"/>
-            <rect x="7" y="2" width="8" height="4" rx="1" fill="#ff7875"/>
-            <rect x="9" y="10" width="4" height="6" rx="1" fill="#fff"/>
-          </svg>
+          <i class="bi bi-trash3-fill"></i>
         </button>
       </div>
       <canvas

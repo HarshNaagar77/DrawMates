@@ -96,3 +96,11 @@
 
 
 }
+    
+@media (max-width: 600px){
+    .home-container{
+        flex-direction: column;
+        gap: 3em;
+    }
+    
+}

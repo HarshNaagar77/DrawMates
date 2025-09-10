@@ -29,8 +29,9 @@ const io = new Server(httpServer, {
 
 
 // setting corsOptions
+
 const corsOptions = {
-    origin: corsOrigins,
+    origin: '*',
     credentials: true
 }
 

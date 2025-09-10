@@ -71,3 +71,9 @@
     position: relative;
     z-index: 1;
 }
+
+@media (max-width: 600px){
+    .room-close-btn{
+        margin-left: -150px;
+    }
+}
