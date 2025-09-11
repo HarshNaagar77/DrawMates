@@ -50,8 +50,15 @@ io.on('connection', (socket) => {
     console.log(`New user connected : ${socket.id}`)
 
 
+
     socket.on('createRoom', ({ roomName }) => {
         console.log(`${socket.id} created room : ${roomName}`);
+        socket.join(roomName);
+    });
+
+    // Join existing room
+    socket.on('join-room', ({ roomName }) => {
+        console.log(`${socket.id} joined room : ${roomName}`);
         socket.join(roomName);
     });
 

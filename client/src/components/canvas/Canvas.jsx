@@ -69,6 +69,7 @@ const Canvas = () => {
     }
   }, [DPR, canvasDiv, context]);
 
+
   // Resize canvas on component mount and window resize
   useEffect(() => {
     resizeCanvas();
@@ -77,6 +78,13 @@ const Canvas = () => {
       window.removeEventListener('resize', resizeCanvas);
     };
   }, [context, resizeCanvas, canvasDiv]);
+
+  // Join the socket.io room when component mounts (or roomName changes)
+  useEffect(() => {
+    if (roomName) {
+      socket.emit('join-room', { roomName });
+    }
+  }, [roomName]);
 
   // Listen for drawing events from socket
   useEffect(() => {
@@ -112,29 +120,15 @@ const Canvas = () => {
   }, [context, canvasDiv]);
 
 
-
-  // Get coordinates for mouse or touch events
   const getRelativeCoords = (e) => {
     const rect = canvasDiv.getBoundingClientRect();
-    let clientX, clientY;
-    if (e.touches && e.touches.length > 0) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else if (e.changedTouches && e.changedTouches.length > 0) {
-      clientX = e.changedTouches[0].clientX;
-      clientY = e.changedTouches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
+    // Always use logical coordinates (not multiplied by DPR)
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
     };
   };
 
-
-  // Mouse events
   const onMouseDown = (e) => {
     if (context) {
       const { x, y } = getRelativeCoords(e);
@@ -143,11 +137,9 @@ const Canvas = () => {
     }
   };
 
-
   const onMouseUp = () => {
     mouseDownRef.current = false;
   };
-
 
   const onMouseMove = (e) => {
     const { x, y } = getRelativeCoords(e);
@@ -155,7 +147,7 @@ const Canvas = () => {
     else setCursorPos(null);
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
-      const drawColor = isErasing ? '#000' : color;
+  const drawColor = isErasing ? '#000' : color;
       const lineWidth = isErasing ? eraserSize : penWidth;
       // Draw line
       context.beginPath();
@@ -227,7 +219,7 @@ const Canvas = () => {
     }
   };
 
-  // Detect if mobile (window width <= 600px)
+  // Detect if mobile (windyow width <= 600px)
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
 
   return (
@@ -313,10 +305,7 @@ const Canvas = () => {
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        style={{ cursor: 'crosshair', touchAction: 'none' }}
+        style={{ cursor: 'crosshair' }}
       />
       {/* No eraser circle, only show + at cursor when erasing */}
       {isErasing  && (
