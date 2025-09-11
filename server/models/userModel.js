@@ -1,9 +1,8 @@
-// importing necessary dependencies
+
 import mongoose from "mongoose";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-// defining schema for user 
 const userSchema = mongoose.Schema({
     firstName: {
         type: String,
@@ -29,11 +28,10 @@ const userSchema = mongoose.Schema({
     }
 }, { timestamps: true })
 
-// hashing user password just before saving it
 userSchema.pre("save", async function (next) {
     const user = this;
 
-    if (!user.isModified("password")) return next(); // if password is not modified
+    if (!user.isModified("password")) return next(); 
 
     try {
         const salt = await bcrypt.genSalt(10);
@@ -45,7 +43,6 @@ userSchema.pre("save", async function (next) {
     }
 })
 
-// custom method to compare passwords
 userSchema.methods.comparePassword = async function (candidatePassword) {
     try {
         return await bcrypt.compare(candidatePassword, this.password);
@@ -54,7 +51,6 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
     }
 }
 
-// custom method to generate access token
 userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
@@ -67,7 +63,6 @@ userSchema.methods.generateAccessToken = function () {
     )
 }
 
-// custom method to generate refresh token
 userSchema.methods.generateRefreshToken = function () {
     return jwt.sign(
         {

@@ -11,7 +11,6 @@ import eraserIcon from '../../assets/icons/eraser.svg';
 
 const Canvas = () => {
   const [context, setContext] = useState(null);
-  // Removed toolbarOpen state, always show toolbar
   const [canvasDiv, setCanvasDiv] = useState(null);
   const [color, setColor] = useState('#ffffff');
   const [isErasing, setIsErasing] = useState(false);
@@ -26,7 +25,6 @@ const Canvas = () => {
   const mouseDownRef = useRef(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
 
-  // Clear canvas function
   const clearCanvas = () => {
     console.log('clearCanvas called', { context, canvasDiv, roomName });
     if (context && canvasDiv) {
@@ -35,14 +33,12 @@ const Canvas = () => {
     } else {
       console.warn('Context or canvasDiv not set');
     }
-    // Optionally, emit clear event to room for collaborative clearing
     if (roomName) {
       socket.emit('clear-canvas', { roomName });
       console.log('clear-canvas event emitted');
     }
   };
 
-  // Set canvas context and canvas element ref
   const setCanvasRef = useCallback((element) => {
     if (element !== null) {
       const canvasContext = element.getContext('2d');
@@ -51,12 +47,10 @@ const Canvas = () => {
     }
   }, []);
 
-  // Function to resize canvas and scale context to fixed aspect ratio (16:9)
   const resizeCanvas = useCallback(() => {
     if (canvasDiv) {
       const vw = window.innerWidth;
       const vh = window.innerHeight - 64 - 56;
-      // Fill all available space
       canvasDiv.width = vw * DPR;
       canvasDiv.height = vh * DPR;
       canvasDiv.style.width = `${vw}px`;
@@ -71,7 +65,6 @@ const Canvas = () => {
   }, [DPR, canvasDiv, context]);
 
 
-  // Resize canvas on component mount and window resize
   useEffect(() => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
@@ -80,7 +73,6 @@ const Canvas = () => {
     };
   }, [context, resizeCanvas, canvasDiv]);
 
-  // Join the socket.io room when component mounts (or roomName changes)
   useEffect(() => {
     if (roomName) {
       socket.emit('join-room', { roomName });
@@ -88,7 +80,6 @@ const Canvas = () => {
     }
   }, [roomName]);
 
-  // Listen for room-count updates
   useEffect(() => {
     const handleRoomCount = ({ count }) => {
       setRoomCount(count);
@@ -99,17 +90,15 @@ const Canvas = () => {
     };
   }, []);
 
-  // Listen for drawing events from socket
   useEffect(() => {
     if (!context) return;
     const handleDrawing = ({ drawingData }) => {
-      const { prevX, prevY, x, y, color: remoteColor, lineWidth } = drawingData;
-      const p1 = normToCanvas(prevX, prevY);
-      const p2 = normToCanvas(x, y);
-      // Scale remote lineWidth
-      const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
-      const scale = base / 800;
-      const scaledLineWidth = (lineWidth || 2) * scale;
+  const { prevX, prevY, x, y, color: remoteColor, lineWidth } = drawingData;
+  const p1 = normToCanvas(prevX, prevY);
+  const p2 = normToCanvas(x, y);
+  const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+  const scale = base / 800;
+  const scaledLineWidth = (lineWidth || 2) * scale;
       context.beginPath();
       context.moveTo(p1.x, p1.y);
       context.lineTo(p2.x, p2.y);
@@ -138,7 +127,6 @@ const Canvas = () => {
   }, [context, canvasDiv]);
 
 
-  // Get normalized coordinates (0-1) for mouse or touch events
   const getRelativeCoords = (e) => {
     const rect = canvasDiv.getBoundingClientRect();
     let clientX, clientY;
@@ -152,14 +140,12 @@ const Canvas = () => {
       clientX = e.clientX;
       clientY = e.clientY;
     }
-    // Normalize to 0-1
     return {
       x: (clientX - rect.left) / rect.width,
       y: (clientY - rect.top) / rect.height
     };
   };
 
-  // Convert normalized (0-1) coords to canvas pixel coords
   const normToCanvas = (nx, ny) => {
     return {
       x: nx * canvasDiv.width / DPR,
@@ -186,9 +172,8 @@ const Canvas = () => {
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
       const drawColor = isErasing ? '#000' : color;
-      // Scale pen/eraser width based on canvas size
-      const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
-      const scale = base / 800; // 800 is a reference size
+  const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+  const scale = base / 800;
       const lineWidth = (isErasing ? eraserSize : penWidth) * scale;
       const p1 = normToCanvas(prevX, prevY);
       const p2 = normToCanvas(x, y);
@@ -205,7 +190,6 @@ const Canvas = () => {
         context.fillStyle = color;
         context.fill();
       }
-      // Emit to server (send normalized coords, unscaled width)
       if (roomName) {
         socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth: isErasing ? eraserSize : penWidth } });
       }
@@ -214,7 +198,6 @@ const Canvas = () => {
   };
 
 
-  // Touch events
   const onTouchStart = (e) => {
     e.preventDefault();
     if (context) {
@@ -237,9 +220,8 @@ const Canvas = () => {
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
       const drawColor = isErasing ? '#000' : color;
-      // Scale pen/eraser width based on canvas size
-      const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
-      const scale = base / 800;
+  const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+  const scale = base / 800;
       const lineWidth = (isErasing ? eraserSize : penWidth) * scale;
       const p1 = normToCanvas(prevX, prevY);
       const p2 = normToCanvas(x, y);
@@ -256,7 +238,6 @@ const Canvas = () => {
         context.fillStyle = color;
         context.fill();
       }
-      // Emit to server (send normalized coords, unscaled width)
       if (roomName) {
         socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth: isErasing ? eraserSize : penWidth } });
       }
@@ -264,7 +245,6 @@ const Canvas = () => {
     }
   };
 
-  // Detect if mobile (windyow width <= 600px)
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
 
   return (
@@ -273,7 +253,6 @@ const Canvas = () => {
         <span role="img" aria-label="users" style={{marginRight: 6}}>👥</span>
         {roomCount} {roomCount === 1 ? 'person' : 'people'} in room
       </div>
-  {/* Always show toolbar, no dropdown */}
   <div className="canvas-toolbar-bar open">
         <button
           className={`canvas-toolbar-btn${!isErasing ? ' active' : ''}`}
@@ -352,7 +331,6 @@ const Canvas = () => {
         onTouchEnd={onTouchEnd}
         style={{ cursor: 'crosshair', touchAction: 'none' }}
       />
-      {/* No eraser circle, only show + at cursor when erasing */}
       {isErasing  && (
         <div
           style={{

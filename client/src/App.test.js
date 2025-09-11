@@ -67,7 +67,6 @@ test('renders login page', () => {
 
   render(<RouterProvider router={router} />);
 
-  // Use getAllByText and assert the correct element
   const loginElements = screen.getAllByText(/login/i);
   expect(loginElements[0]).toBeInTheDocument();
 });
@@ -100,7 +99,6 @@ test('renders signup page', () => {
 
   render(<RouterProvider router={router} />);
 
-  // Use getAllByText and assert the correct element
   const signupElements = screen.getAllByText(/signup/i);
   expect(signupElements[0]).toBeInTheDocument();
 });

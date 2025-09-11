@@ -1,10 +1,8 @@
-/**
  * File: server/setup/setup.js, client/src/setup/setup.js
  * Author: Sailash sailashs2005@gmail.com
  * Description: Description: Automates the creation of the .env configuration file.
  *              Generates secure JWT secrets, sets default environment variables,
  *              and prompts the user before overwriting existing configuration.
- */
 
 import fs from 'fs';
 import path from 'path';

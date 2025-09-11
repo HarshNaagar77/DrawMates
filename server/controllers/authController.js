@@ -1,20 +1,15 @@
 import { User } from '../models/userModel.js';
 import jwt from "jsonwebtoken";
 
-// controller for generating refresh and access tokens
 const generateAccessAndRefreshToken = async (userId) => {
     const user = await User.findById(userId);
-    // generate access token and refresh token
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
-    // updating refresh token of user
     user.refreshToken = refreshToken;
-    // saving the refresh token to database without validation
     await user.save({ validateBeforeSave: false })
     return { accessToken, refreshToken };
 }
 
-// controller for signup
 export const signup = async (req, res) => {
     const { firstName, lastName, email, password, cnfpassword } = req.body;
 
@@ -57,19 +52,16 @@ export const login = async (req, res) => {
         const passwordMatch = await user.comparePassword(password);
 
         if (passwordMatch) {
-            // calling generateAccessTokenAndRefreshTokens and destructuring tokens
-            const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
+           const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id)
 
             const loggedInUser = await User.findById(user._id).select("-password");
 
-            // creating options for cookie configuration (local dev)
             const options = {
                 httpOnly: true,
-                secure: false, // set to true in production with HTTPS
+                secure: false, 
                 sameSite: 'Lax'
             }
 
-            // setting cookies in the response
             return res
                 .status(200)
                 .cookie("accessToken", accessToken, options)
