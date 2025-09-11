@@ -120,12 +120,23 @@ const Canvas = () => {
   }, [context, canvasDiv]);
 
 
+  // Get coordinates for mouse or touch events
   const getRelativeCoords = (e) => {
     const rect = canvasDiv.getBoundingClientRect();
-    // Always use logical coordinates (not multiplied by DPR)
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: clientX - rect.left,
+      y: clientY - rect.top
     };
   };
 
@@ -171,6 +182,7 @@ const Canvas = () => {
       lastPosRef.current = { x, y };
     }
   };
+
 
   // Touch events
   const onTouchStart = (e) => {
@@ -305,7 +317,10 @@ const Canvas = () => {
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
-        style={{ cursor: 'crosshair' }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{ cursor: 'crosshair', touchAction: 'none' }}
       />
       {/* No eraser circle, only show + at cursor when erasing */}
       {isErasing  && (
