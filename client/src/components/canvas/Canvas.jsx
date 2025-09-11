@@ -18,6 +18,7 @@ const Canvas = () => {
   const [eraserSize, setEraserSize] = useState(16);
   const [penWidth, setPenWidth] = useState(2);
   const [cursorPos, setCursorPos] = useState(null);
+  const [roomCount, setRoomCount] = useState(1);
   const canvasParentId = 'canvas-parent';
   const canvasElementId = 'canvas-element';
   let DPR = window.devicePixelRatio || 1;
@@ -83,8 +84,20 @@ const Canvas = () => {
   useEffect(() => {
     if (roomName) {
       socket.emit('join-room', { roomName });
+      socket.emit('get-room-count', { roomName });
     }
   }, [roomName]);
+
+  // Listen for room-count updates
+  useEffect(() => {
+    const handleRoomCount = ({ count }) => {
+      setRoomCount(count);
+    };
+    socket.on('room-count', handleRoomCount);
+    return () => {
+      socket.off('room-count', handleRoomCount);
+    };
+  }, []);
 
   // Listen for drawing events from socket
   useEffect(() => {
@@ -236,6 +249,10 @@ const Canvas = () => {
 
   return (
     <div className="canvas-container" id={canvasParentId}>
+      <div style={{position: 'absolute', top: 8, right: 16, zIndex: 20, background: '#fff', borderRadius: 8, padding: '4px 12px', fontWeight: 500, boxShadow: '0 1px 4px #0001'}}>
+        <span role="img" aria-label="users" style={{marginRight: 6}}>👥</span>
+        {roomCount} {roomCount === 1 ? 'person' : 'people'} in room
+      </div>
       {isMobile && (
         <button
           className="canvas-toolbar-toggle"

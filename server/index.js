@@ -51,15 +51,24 @@ io.on('connection', (socket) => {
 
 
 
+
     socket.on('createRoom', ({ roomName }) => {
         console.log(`${socket.id} created room : ${roomName}`);
         socket.join(roomName);
+        emitRoomCount(roomName);
     });
+
 
     // Join existing room
     socket.on('join-room', ({ roomName }) => {
         console.log(`${socket.id} joined room : ${roomName}`);
         socket.join(roomName);
+        emitRoomCount(roomName);
+    });
+
+    // Handle get-room-count request
+    socket.on('get-room-count', ({ roomName }) => {
+        emitRoomCount(roomName);
     });
 
 
@@ -74,9 +83,23 @@ io.on('connection', (socket) => {
         socket.to(roomName).emit('clear-canvas');
     });
 
+
     socket.on('disconnect', (reason) => {
         connections = connections.filter((con) => con.id !== socket.id);
+        // For all rooms this socket was in, emit updated count
+        for (const roomName of socket.rooms) {
+            if (roomName !== socket.id) {
+                emitRoomCount(roomName);
+            }
+        }
     })
+
+    // Helper to emit room count
+    function emitRoomCount(roomName) {
+        const room = io.sockets.adapter.rooms.get(roomName);
+        const count = room ? room.size : 0;
+        io.to(roomName).emit('room-count', { count });
+    }
 })
 
 // connecting database and starting server
