@@ -11,7 +11,7 @@ import eraserIcon from '../../assets/icons/eraser.svg';
 
 const Canvas = () => {
   const [context, setContext] = useState(null);
-  const [toolbarOpen, setToolbarOpen] = useState(false);
+  // Removed toolbarOpen state, always show toolbar
   const [canvasDiv, setCanvasDiv] = useState(null);
   const [color, setColor] = useState('#ffffff');
   const [isErasing, setIsErasing] = useState(false);
@@ -51,20 +51,20 @@ const Canvas = () => {
     }
   }, []);
 
-  // Function to resize canvas and scale context
+  // Function to resize canvas and scale context to fixed aspect ratio (16:9)
   const resizeCanvas = useCallback(() => {
     if (canvasDiv) {
-      // Make canvas fill viewport below navbar and toolbar
       const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      // 64px navbar, 56px toolbar
-      const height = vh - 64 - 56;
+      const vh = window.innerHeight - 64 - 56;
+      // Fill all available space
       canvasDiv.width = vw * DPR;
-      canvasDiv.height = height * DPR;
+      canvasDiv.height = vh * DPR;
       canvasDiv.style.width = `${vw}px`;
-      canvasDiv.style.height = `${height}px`;
+      canvasDiv.style.height = `${vh}px`;
+      canvasDiv.style.display = 'block';
+      canvasDiv.style.margin = '0';
       if (context) {
-        context.setTransform(1, 0, 0, 1, 0, 0); // reset transform
+        context.setTransform(1, 0, 0, 1, 0, 0);
         context.scale(DPR, DPR);
       }
     }
@@ -104,17 +104,22 @@ const Canvas = () => {
     if (!context) return;
     const handleDrawing = ({ drawingData }) => {
       const { prevX, prevY, x, y, color: remoteColor, lineWidth } = drawingData;
+      const p1 = normToCanvas(prevX, prevY);
+      const p2 = normToCanvas(x, y);
+      // Scale remote lineWidth
+      const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+      const scale = base / 800;
+      const scaledLineWidth = (lineWidth || 2) * scale;
       context.beginPath();
-      context.moveTo(prevX, prevY);
-      context.lineTo(x, y);
+      context.moveTo(p1.x, p1.y);
+      context.lineTo(p2.x, p2.y);
       context.strokeStyle = remoteColor || '#ffffff';
-      context.lineWidth = lineWidth || 2;
+      context.lineWidth = scaledLineWidth;
       context.lineCap = 'round';
       context.stroke();
-      // For pen, draw a filled circle at the current point to fill any gaps
-  if (remoteColor !== '#000') {
+      if (remoteColor !== '#000') {
         context.beginPath();
-        context.arc(x, y, (lineWidth || 2) / 2, 0, 2 * Math.PI);
+        context.arc(p2.x, p2.y, scaledLineWidth / 2, 0, 2 * Math.PI);
         context.fillStyle = remoteColor || '#ffffff';
         context.fill();
       }
@@ -133,7 +138,7 @@ const Canvas = () => {
   }, [context, canvasDiv]);
 
 
-  // Get coordinates for mouse or touch events
+  // Get normalized coordinates (0-1) for mouse or touch events
   const getRelativeCoords = (e) => {
     const rect = canvasDiv.getBoundingClientRect();
     let clientX, clientY;
@@ -147,9 +152,18 @@ const Canvas = () => {
       clientX = e.clientX;
       clientY = e.clientY;
     }
+    // Normalize to 0-1
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
+      x: (clientX - rect.left) / rect.width,
+      y: (clientY - rect.top) / rect.height
+    };
+  };
+
+  // Convert normalized (0-1) coords to canvas pixel coords
+  const normToCanvas = (nx, ny) => {
+    return {
+      x: nx * canvasDiv.width / DPR,
+      y: ny * canvasDiv.height / DPR
     };
   };
 
@@ -171,26 +185,29 @@ const Canvas = () => {
     else setCursorPos(null);
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
-  const drawColor = isErasing ? '#000' : color;
-      const lineWidth = isErasing ? eraserSize : penWidth;
-      // Draw line
+      const drawColor = isErasing ? '#000' : color;
+      // Scale pen/eraser width based on canvas size
+      const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+      const scale = base / 800; // 800 is a reference size
+      const lineWidth = (isErasing ? eraserSize : penWidth) * scale;
+      const p1 = normToCanvas(prevX, prevY);
+      const p2 = normToCanvas(x, y);
       context.beginPath();
-      context.moveTo(prevX, prevY);
-      context.lineTo(x, y);
+      context.moveTo(p1.x, p1.y);
+      context.lineTo(p2.x, p2.y);
       context.strokeStyle = drawColor;
       context.lineWidth = lineWidth;
       context.lineCap = 'round';
       context.stroke();
-      // For pen, draw a filled circle at the current point to fill any gaps
       if (!isErasing) {
         context.beginPath();
-        context.arc(x, y, penWidth / 2, 0, 2 * Math.PI);
+        context.arc(p2.x, p2.y, lineWidth / 2, 0, 2 * Math.PI);
         context.fillStyle = color;
         context.fill();
       }
-      // Emit to server
+      // Emit to server (send normalized coords, unscaled width)
       if (roomName) {
-        socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth } });
+        socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth: isErasing ? eraserSize : penWidth } });
       }
       lastPosRef.current = { x, y };
     }
@@ -220,25 +237,28 @@ const Canvas = () => {
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
       const drawColor = isErasing ? '#000' : color;
-      const lineWidth = isErasing ? eraserSize : penWidth;
-      // Draw line
+      // Scale pen/eraser width based on canvas size
+      const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+      const scale = base / 800;
+      const lineWidth = (isErasing ? eraserSize : penWidth) * scale;
+      const p1 = normToCanvas(prevX, prevY);
+      const p2 = normToCanvas(x, y);
       context.beginPath();
-      context.moveTo(prevX, prevY);
-      context.lineTo(x, y);
+      context.moveTo(p1.x, p1.y);
+      context.lineTo(p2.x, p2.y);
       context.strokeStyle = drawColor;
       context.lineWidth = lineWidth;
       context.lineCap = 'round';
       context.stroke();
-      // For pen, draw a filled circle at the current point to fill any gaps
       if (!isErasing) {
         context.beginPath();
-        context.arc(x, y, penWidth / 2, 0, 2 * Math.PI);
+        context.arc(p2.x, p2.y, lineWidth / 2, 0, 2 * Math.PI);
         context.fillStyle = color;
         context.fill();
       }
-      // Emit to server
+      // Emit to server (send normalized coords, unscaled width)
       if (roomName) {
-        socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth } });
+        socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth: isErasing ? eraserSize : penWidth } });
       }
       lastPosRef.current = { x, y };
     }
@@ -253,15 +273,8 @@ const Canvas = () => {
         <span role="img" aria-label="users" style={{marginRight: 6}}>👥</span>
         {roomCount} {roomCount === 1 ? 'person' : 'people'} in room
       </div>
-      {isMobile && (
-        <button
-          className="canvas-toolbar-toggle"
-          onClick={() => setToolbarOpen((open) => !open)}
-        >
-          {toolbarOpen ? 'Hide Tools' : 'Show Tools'}
-        </button>
-      )}
-      <div className={`canvas-toolbar-bar${isMobile ? (toolbarOpen ? ' open' : ' closed') : ''}`}> 
+  {/* Always show toolbar, no dropdown */}
+  <div className="canvas-toolbar-bar open">
         <button
           className={`canvas-toolbar-btn${!isErasing ? ' active' : ''}`}
           title="Pen"
