@@ -112,15 +112,29 @@ const Canvas = () => {
   }, [context, canvasDiv]);
 
 
+
+  // Get coordinates for mouse or touch events
   const getRelativeCoords = (e) => {
     const rect = canvasDiv.getBoundingClientRect();
-    // Always use logical coordinates (not multiplied by DPR)
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: clientX - rect.left,
+      y: clientY - rect.top
     };
   };
 
+
+  // Mouse events
   const onMouseDown = (e) => {
     if (context) {
       const { x, y } = getRelativeCoords(e);
@@ -129,9 +143,11 @@ const Canvas = () => {
     }
   };
 
+
   const onMouseUp = () => {
     mouseDownRef.current = false;
   };
+
 
   const onMouseMove = (e) => {
     const { x, y } = getRelativeCoords(e);
@@ -139,7 +155,54 @@ const Canvas = () => {
     else setCursorPos(null);
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
-  const drawColor = isErasing ? '#000' : color;
+      const drawColor = isErasing ? '#000' : color;
+      const lineWidth = isErasing ? eraserSize : penWidth;
+      // Draw line
+      context.beginPath();
+      context.moveTo(prevX, prevY);
+      context.lineTo(x, y);
+      context.strokeStyle = drawColor;
+      context.lineWidth = lineWidth;
+      context.lineCap = 'round';
+      context.stroke();
+      // For pen, draw a filled circle at the current point to fill any gaps
+      if (!isErasing) {
+        context.beginPath();
+        context.arc(x, y, penWidth / 2, 0, 2 * Math.PI);
+        context.fillStyle = color;
+        context.fill();
+      }
+      // Emit to server
+      if (roomName) {
+        socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth } });
+      }
+      lastPosRef.current = { x, y };
+    }
+  };
+
+  // Touch events
+  const onTouchStart = (e) => {
+    e.preventDefault();
+    if (context) {
+      const { x, y } = getRelativeCoords(e);
+      lastPosRef.current = { x, y };
+      mouseDownRef.current = true;
+    }
+  };
+
+  const onTouchEnd = (e) => {
+    e.preventDefault();
+    mouseDownRef.current = false;
+  };
+
+  const onTouchMove = (e) => {
+    e.preventDefault();
+    const { x, y } = getRelativeCoords(e);
+    if (isErasing) setCursorPos({ x, y });
+    else setCursorPos(null);
+    if (mouseDownRef.current && context) {
+      const { x: prevX, y: prevY } = lastPosRef.current;
+      const drawColor = isErasing ? '#000' : color;
       const lineWidth = isErasing ? eraserSize : penWidth;
       // Draw line
       context.beginPath();
@@ -250,7 +313,10 @@ const Canvas = () => {
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
-        style={{ cursor: 'crosshair' }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{ cursor: 'crosshair', touchAction: 'none' }}
       />
       {/* No eraser circle, only show + at cursor when erasing */}
       {isErasing  && (
