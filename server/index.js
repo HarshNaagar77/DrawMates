@@ -1,4 +1,3 @@
-
 // importing necessary dependencies
 
 import express from 'express';
@@ -15,7 +14,7 @@ import connectDB from './config/dbconfig.js';
 
 // configuring dotenv path
 dotenv.config({ path: './.env' });
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 4000;
 const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
 
 // creating an express app
@@ -31,7 +30,7 @@ const io = new Server(httpServer, {
 // setting corsOptions
 
 const corsOptions = {
-    origin: '*',
+    origin: corsOrigins,
     credentials: true
 }
 
@@ -76,7 +75,7 @@ io.on('connection', (socket) => {
 // connecting database and starting server
 connectDB()
     .then(() => {
-        httpServer.listen(PORT || 8800, () => {
+        httpServer.listen(PORT, '0.0.0.0', () => {
             console.log(`⚙️  Server is running at port : ${PORT}`);
             app.get("/", (req, res) => {
                 res.status(201).send("Hi, from index.js ! Your server is running successfully.");
