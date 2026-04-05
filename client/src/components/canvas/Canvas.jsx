@@ -10,7 +10,6 @@ const Canvas = () => {
   const [selectedTool, setSelectedTool] = useState('pen'); // 'pen', 'eraser', 'rect', 'circle', 'line'
   const [eraserSize, setEraserSize] = useState(16);
   const [penWidth, setPenWidth] = useState(2);
-  const [cursorPos, setCursorPos] = useState(null);
   const [roomCount, setRoomCount] = useState(1);
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
@@ -54,19 +53,13 @@ const Canvas = () => {
   };
 
   const clearCanvas = () => {
-    console.log('clearCanvas called', { context, canvasDiv, roomName });
     if (context && canvasDiv) {
       setUndoStack((prev) => [...prev, canvasDiv.toDataURL()]);
       setRedoStack([]);
       context.clearRect(0, 0, canvasDiv.width, canvasDiv.height);
-      console.log('Canvas cleared');
-    } else {
-      console.warn('Context or canvasDiv not set');
     }
     if (roomName) {
       socket.emit('clear-canvas', { roomName });
-      console.log('clear-canvas event emitted');
-    }
   };
 
   const setCanvasRef = useCallback((element) => {
@@ -314,12 +307,6 @@ const Canvas = () => {
 
   const onMouseMove = (e) => {
     const { x, y } = getRelativeCoords(e);
-    if (['eraser', 'pen'].includes(selectedTool)) {
-      if (selectedTool === 'eraser') setCursorPos({ x, y });
-      else setCursorPos(null);
-    } else {
-      setCursorPos(null);
-    }
 
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
@@ -401,12 +388,6 @@ const Canvas = () => {
   const onTouchMove = (e) => {
     e.preventDefault();
     const { x, y } = getRelativeCoords(e);
-    if (['eraser', 'pen'].includes(selectedTool)) {
-      if (selectedTool === 'eraser') setCursorPos({ x, y });
-      else setCursorPos(null);
-    } else {
-      setCursorPos(null);
-    }
 
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
@@ -445,7 +426,6 @@ const Canvas = () => {
     }
   };
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
 
   return (
     <div className="canvas-container" id={canvasParentId}>
