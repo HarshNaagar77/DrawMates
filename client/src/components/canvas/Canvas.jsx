@@ -1,14 +1,9 @@
 
-
-
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import './Canvas.scss';
 import { useParams } from 'react-router-dom';
 
 import socket from '../../utils/socket';
-import penIcon from '../../assets/icons/pen.svg';
-import eraserIcon from '../../assets/icons/eraser.svg';
-
 const Canvas = () => {
   const [context, setContext] = useState(null);
   const [canvasDiv, setCanvasDiv] = useState(null);

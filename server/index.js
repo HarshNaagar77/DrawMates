@@ -106,9 +106,9 @@ io.on('connection', (socket) => {
 connectDB()
     .then(() => {
         httpServer.listen(PORT, '0.0.0.0', () => {
-            console.log(`⚙️  Server is running at port : ${PORT}`);
-            app.get("/", (req, res) => {
-                res.status(201).send("Hi, from index.js ! Your server is running successfully.");
+            console.log(` Server is running at port : ${PORT}`);
+            app.get("/", (req, res) => { 
+                res.status(201).send("Hi, from index.js ! server is running successfully.");
             })
         })
     })
