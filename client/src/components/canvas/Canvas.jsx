@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import './Canvas.scss';
 import { useParams } from 'react-router-dom';
@@ -8,7 +7,7 @@ const Canvas = () => {
   const [context, setContext] = useState(null);
   const [canvasDiv, setCanvasDiv] = useState(null);
   const [color, setColor] = useState('#ffffff');
-  const [isErasing, setIsErasing] = useState(false);
+  const [selectedTool, setSelectedTool] = useState('pen'); // 'pen', 'eraser', 'rect', 'circle', 'line'
   const [eraserSize, setEraserSize] = useState(16);
   const [penWidth, setPenWidth] = useState(2);
   const [cursorPos, setCursorPos] = useState(null);
@@ -19,6 +18,7 @@ const Canvas = () => {
   const roomName = useParams().roomName;
   const mouseDownRef = useRef(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
+  const canvasImageRef = useRef(null); // Store canvas state for shape preview
 
   const clearCanvas = () => {
     console.log('clearCanvas called', { context, canvasDiv, roomName });
@@ -88,12 +88,12 @@ const Canvas = () => {
   useEffect(() => {
     if (!context) return;
     const handleDrawing = ({ drawingData }) => {
-  const { prevX, prevY, x, y, color: remoteColor, lineWidth } = drawingData;
-  const p1 = normToCanvas(prevX, prevY);
-  const p2 = normToCanvas(x, y);
-  const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
-  const scale = base / 800;
-  const scaledLineWidth = (lineWidth || 2) * scale;
+      const { prevX, prevY, x, y, color: remoteColor, lineWidth } = drawingData;
+      const p1 = normToCanvas(prevX, prevY);
+      const p2 = normToCanvas(x, y);
+      const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+      const scale = base / 800;
+      const scaledLineWidth = (lineWidth || 2) * scale;
       context.beginPath();
       context.moveTo(p1.x, p1.y);
       context.lineTo(p2.x, p2.y);
@@ -108,15 +108,48 @@ const Canvas = () => {
         context.fill();
       }
     };
+
+    const handleShape = ({ shapeData }) => {
+      const { type, startX, startY, endX, endY, shapeColor, lineWidth: shapeLineWidth } = shapeData;
+      const p1 = normToCanvas(startX, startY);
+      const p2 = normToCanvas(endX, endY);
+      const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+      const scale = base / 800;
+      const scaledLineWidth = (shapeLineWidth || 2) * scale;
+
+      context.strokeStyle = shapeColor || '#ffffff';
+      context.fillStyle = shapeColor || '#ffffff';
+      context.lineWidth = scaledLineWidth;
+
+      if (type === 'rect') {
+        const width = p2.x - p1.x;
+        const height = p2.y - p1.y;
+        context.strokeRect(p1.x, p1.y, width, height);
+      } else if (type === 'circle') {
+        const radius = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+        context.beginPath();
+        context.arc(p1.x, p1.y, radius, 0, 2 * Math.PI);
+        context.stroke();
+      } else if (type === 'line') {
+        context.beginPath();
+        context.moveTo(p1.x, p1.y);
+        context.lineTo(p2.x, p2.y);
+        context.stroke();
+      }
+    };
+
     const handleClear = () => {
       if (context && canvasDiv) {
         context.clearRect(0, 0, canvasDiv.width, canvasDiv.height);
       }
     };
+
     socket.on('drawing', handleDrawing);
+    socket.on('shape', handleShape);
     socket.on('clear-canvas', handleClear);
     return () => {
       socket.off('drawing', handleDrawing);
+      socket.off('shape', handleShape);
       socket.off('clear-canvas', handleClear);
     };
   }, [context, canvasDiv]);
@@ -148,47 +181,112 @@ const Canvas = () => {
     };
   };
 
+  const drawShape = (startX, startY, endX, endY, type, shapeColor, lineWidth) => {
+    if (!context) return;
+    const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+    const scale = base / 800;
+    const scaledLineWidth = lineWidth * scale;
+
+    const p1 = normToCanvas(startX, startY);
+    const p2 = normToCanvas(endX, endY);
+
+    context.strokeStyle = shapeColor;
+    context.lineWidth = scaledLineWidth;
+
+    if (type === 'rect') {
+      const width = p2.x - p1.x;
+      const height = p2.y - p1.y;
+      context.strokeRect(p1.x, p1.y, width, height);
+    } else if (type === 'circle') {
+      const radius = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+      context.beginPath();
+      context.arc(p1.x, p1.y, radius, 0, 2 * Math.PI);
+      context.stroke();
+    } else if (type === 'line') {
+      context.beginPath();
+      context.moveTo(p1.x, p1.y);
+      context.lineTo(p2.x, p2.y);
+      context.stroke();
+    }
+  };
+
   const onMouseDown = (e) => {
     if (context) {
       const { x, y } = getRelativeCoords(e);
       lastPosRef.current = { x, y };
       mouseDownRef.current = true;
+      // Save canvas state for shape preview
+      if (['rect', 'circle', 'line'].includes(selectedTool)) {
+        canvasImageRef.current = context.getImageData(0, 0, canvasDiv.width, canvasDiv.height);
+      }
     }
   };
 
   const onMouseUp = () => {
+    if (mouseDownRef.current && ['rect', 'circle', 'line'].includes(selectedTool)) {
+      const { x, y } = lastPosRef.current;
+      // Emit shape data
+      if (roomName) {
+        socket.emit('shape', {
+          roomName,
+          shapeData: {
+            type: selectedTool,
+            startX: lastPosRef.current.x,
+            startY: lastPosRef.current.y,
+            endX: x,
+            endY: y,
+            shapeColor: color,
+            lineWidth: penWidth
+          }
+        });
+      }
+    }
     mouseDownRef.current = false;
   };
 
   const onMouseMove = (e) => {
     const { x, y } = getRelativeCoords(e);
-    if (isErasing) setCursorPos({ x, y });
-    else setCursorPos(null);
+    if (['eraser', 'pen'].includes(selectedTool)) {
+      if (selectedTool === 'eraser') setCursorPos({ x, y });
+      else setCursorPos(null);
+    } else {
+      setCursorPos(null);
+    }
+
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
-      const drawColor = isErasing ? '#000' : color;
-  const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
-  const scale = base / 800;
-      const lineWidth = (isErasing ? eraserSize : penWidth) * scale;
-      const p1 = normToCanvas(prevX, prevY);
-      const p2 = normToCanvas(x, y);
-      context.beginPath();
-      context.moveTo(p1.x, p1.y);
-      context.lineTo(p2.x, p2.y);
-      context.strokeStyle = drawColor;
-      context.lineWidth = lineWidth;
-      context.lineCap = 'round';
-      context.stroke();
-      if (!isErasing) {
+
+      if (selectedTool === 'pen' || selectedTool === 'eraser') {
+        const drawColor = selectedTool === 'eraser' ? '#000' : color;
+        const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+        const scale = base / 800;
+        const lineWidth = (selectedTool === 'eraser' ? eraserSize : penWidth) * scale;
+        const p1 = normToCanvas(prevX, prevY);
+        const p2 = normToCanvas(x, y);
         context.beginPath();
-        context.arc(p2.x, p2.y, lineWidth / 2, 0, 2 * Math.PI);
-        context.fillStyle = color;
-        context.fill();
+        context.moveTo(p1.x, p1.y);
+        context.lineTo(p2.x, p2.y);
+        context.strokeStyle = drawColor;
+        context.lineWidth = lineWidth;
+        context.lineCap = 'round';
+        context.stroke();
+        if (selectedTool !== 'eraser') {
+          context.beginPath();
+          context.arc(p2.x, p2.y, lineWidth / 2, 0, 2 * Math.PI);
+          context.fillStyle = color;
+          context.fill();
+        }
+        if (roomName) {
+          socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth: selectedTool === 'eraser' ? eraserSize : penWidth } });
+        }
+        lastPosRef.current = { x, y };
+      } else if (['rect', 'circle', 'line'].includes(selectedTool)) {
+        // Restore canvas state and draw preview
+        if (canvasImageRef.current) {
+          context.putImageData(canvasImageRef.current, 0, 0);
+        }
+        drawShape(prevX, prevY, x, y, selectedTool, color, penWidth);
       }
-      if (roomName) {
-        socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth: isErasing ? eraserSize : penWidth } });
-      }
-      lastPosRef.current = { x, y };
     }
   };
 
@@ -199,44 +297,79 @@ const Canvas = () => {
       const { x, y } = getRelativeCoords(e);
       lastPosRef.current = { x, y };
       mouseDownRef.current = true;
+      // Save canvas state for shape preview
+      if (['rect', 'circle', 'line'].includes(selectedTool)) {
+        canvasImageRef.current = context.getImageData(0, 0, canvasDiv.width, canvasDiv.height);
+      }
     }
   };
 
   const onTouchEnd = (e) => {
     e.preventDefault();
+    if (mouseDownRef.current && ['rect', 'circle', 'line'].includes(selectedTool)) {
+      // Emit shape data
+      if (roomName) {
+        socket.emit('shape', {
+          roomName,
+          shapeData: {
+            type: selectedTool,
+            startX: lastPosRef.current.x,
+            startY: lastPosRef.current.y,
+            endX: lastPosRef.current.x,
+            endY: lastPosRef.current.y,
+            shapeColor: color,
+            lineWidth: penWidth
+          }
+        });
+      }
+    }
     mouseDownRef.current = false;
   };
 
   const onTouchMove = (e) => {
     e.preventDefault();
     const { x, y } = getRelativeCoords(e);
-    if (isErasing) setCursorPos({ x, y });
-    else setCursorPos(null);
+    if (['eraser', 'pen'].includes(selectedTool)) {
+      if (selectedTool === 'eraser') setCursorPos({ x, y });
+      else setCursorPos(null);
+    } else {
+      setCursorPos(null);
+    }
+
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
-      const drawColor = isErasing ? '#000' : color;
-  const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
-  const scale = base / 800;
-      const lineWidth = (isErasing ? eraserSize : penWidth) * scale;
-      const p1 = normToCanvas(prevX, prevY);
-      const p2 = normToCanvas(x, y);
-      context.beginPath();
-      context.moveTo(p1.x, p1.y);
-      context.lineTo(p2.x, p2.y);
-      context.strokeStyle = drawColor;
-      context.lineWidth = lineWidth;
-      context.lineCap = 'round';
-      context.stroke();
-      if (!isErasing) {
+
+      if (selectedTool === 'pen' || selectedTool === 'eraser') {
+        const drawColor = selectedTool === 'eraser' ? '#000' : color;
+        const base = Math.min(canvasDiv.width, canvasDiv.height) / DPR;
+        const scale = base / 800;
+        const lineWidth = (selectedTool === 'eraser' ? eraserSize : penWidth) * scale;
+        const p1 = normToCanvas(prevX, prevY);
+        const p2 = normToCanvas(x, y);
         context.beginPath();
-        context.arc(p2.x, p2.y, lineWidth / 2, 0, 2 * Math.PI);
-        context.fillStyle = color;
-        context.fill();
+        context.moveTo(p1.x, p1.y);
+        context.lineTo(p2.x, p2.y);
+        context.strokeStyle = drawColor;
+        context.lineWidth = lineWidth;
+        context.lineCap = 'round';
+        context.stroke();
+        if (selectedTool !== 'eraser') {
+          context.beginPath();
+          context.arc(p2.x, p2.y, lineWidth / 2, 0, 2 * Math.PI);
+          context.fillStyle = color;
+          context.fill();
+        }
+        if (roomName) {
+          socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth: selectedTool === 'eraser' ? eraserSize : penWidth } });
+        }
+        lastPosRef.current = { x, y };
+      } else if (['rect', 'circle', 'line'].includes(selectedTool)) {
+        // Restore canvas state and draw preview
+        if (canvasImageRef.current) {
+          context.putImageData(canvasImageRef.current, 0, 0);
+        }
+        drawShape(prevX, prevY, x, y, selectedTool, color, penWidth);
       }
-      if (roomName) {
-        socket.emit('drawing', { roomName, drawingData: { prevX, prevY, x, y, color: drawColor, lineWidth: isErasing ? eraserSize : penWidth } });
-      }
-      lastPosRef.current = { x, y };
     }
   };
 
@@ -248,22 +381,43 @@ const Canvas = () => {
         <span role="img" aria-label="users" style={{marginRight: 6}}>👥</span>
         {roomCount} {roomCount === 1 ? 'person' : 'people'} in room
       </div>
-  <div className="canvas-toolbar-bar open">
+      <div className="canvas-toolbar-bar open">
         <button
-          className={`canvas-toolbar-btn${!isErasing ? ' active' : ''}`}
+          className={`canvas-toolbar-btn${selectedTool === 'pen' ? ' active' : ''}`}
           title="Pen"
-          onClick={() => setIsErasing(false)}
+          onClick={() => setSelectedTool('pen')}
         >
-          <i class="bi bi-pencil-fill"></i>
+          <i className="bi bi-pencil-fill"></i>
         </button>
         <button
-          className={`canvas-toolbar-btn${isErasing ? ' active' : ''}`}
+          className={`canvas-toolbar-btn${selectedTool === 'eraser' ? ' active' : ''}`}
           title="Eraser"
-          onClick={() => setIsErasing(true)}
+          onClick={() => setSelectedTool('eraser')}
         >
-          <i class="bi bi-eraser-fill"></i>
-          </button>
-        {!isErasing && (
+          <i className="bi bi-eraser-fill"></i>
+        </button>
+        <button
+          className={`canvas-toolbar-btn${selectedTool === 'rect' ? ' active' : ''}`}
+          title="Rectangle"
+          onClick={() => setSelectedTool('rect')}
+        >
+          <i className="bi bi-square"></i>
+        </button>
+        <button
+          className={`canvas-toolbar-btn${selectedTool === 'circle' ? ' active' : ''}`}
+          title="Circle"
+          onClick={() => setSelectedTool('circle')}
+        >
+          <i className="bi bi-circle"></i>
+        </button>
+        <button
+          className={`canvas-toolbar-btn${selectedTool === 'line' ? ' active' : ''}`}
+          title="Line"
+          onClick={() => setSelectedTool('line')}
+        >
+          <i className="bi bi-slash-lg"></i>
+        </button>
+        {(selectedTool === 'pen' || ['rect', 'circle', 'line'].includes(selectedTool)) && (
           <label className="canvas-color-label">
             <span>Color:</span>
             <span className="color-preview" style={{
@@ -279,9 +433,9 @@ const Canvas = () => {
             <input className="co" type="color" value={color} onChange={e => setColor(e.target.value)} />
           </label>
         )}
-        {!isErasing && (
+        {(selectedTool === 'pen' || ['rect', 'circle', 'line'].includes(selectedTool)) && (
           <label className="canvas-pen-label">
-            <span>Pen Width:</span>
+            <span>Width:</span>
             <input
               type="range"
               min={1}
@@ -292,7 +446,7 @@ const Canvas = () => {
             <span>{penWidth}px</span>
           </label>
         )}
-        {isErasing && (
+        {selectedTool === 'eraser' && (
           <label className="canvas-eraser-label">
             <span>Eraser Size:</span>
             <input
@@ -306,12 +460,11 @@ const Canvas = () => {
           </label>
         )}
         <button
-
           className="canvas-toolbar-btn canvas-clear-btn"
           title="Clear Canvas"
           onClick={clearCanvas}
         >
-          <i class="bi bi-trash3-fill"></i>
+          <i className="bi bi-trash3-fill"></i>
         </button>
       </div>
       <canvas
@@ -326,7 +479,7 @@ const Canvas = () => {
         onTouchEnd={onTouchEnd}
         style={{ cursor: 'crosshair', touchAction: 'none' }}
       />
-      {isErasing  && (
+      {selectedTool === 'eraser' && (
         <div
           style={{
             position: 'absolute',
