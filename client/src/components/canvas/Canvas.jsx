@@ -60,6 +60,7 @@ const Canvas = () => {
     }
     if (roomName) {
       socket.emit('clear-canvas', { roomName });
+    }
   };
 
   const setCanvasRef = useCallback((element) => {
