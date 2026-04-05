@@ -19,6 +19,7 @@ const Canvas = () => {
   const roomName = useParams().roomName;
   const mouseDownRef = useRef(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
+  const currentPosRef = useRef({ x: 0, y: 0 });
   const canvasImageRef = useRef(null); // Store canvas state for shape preview
 
   const loadCanvasFromDataUrl = (dataUrl) => {
@@ -276,6 +277,7 @@ const Canvas = () => {
 
       const { x, y } = getRelativeCoords(e);
       lastPosRef.current = { x, y };
+      currentPosRef.current = { x, y };
       mouseDownRef.current = true;
       // Save canvas state for shape preview
       if (['rect', 'circle', 'line'].includes(selectedTool)) {
@@ -286,7 +288,7 @@ const Canvas = () => {
 
   const onMouseUp = () => {
     if (mouseDownRef.current && ['rect', 'circle', 'line'].includes(selectedTool)) {
-      const { x, y } = lastPosRef.current;
+      const { x, y } = currentPosRef.current;
       // Emit shape data
       if (roomName) {
         socket.emit('shape', {
@@ -308,6 +310,7 @@ const Canvas = () => {
 
   const onMouseMove = (e) => {
     const { x, y } = getRelativeCoords(e);
+    currentPosRef.current = { x, y };
 
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
@@ -356,6 +359,7 @@ const Canvas = () => {
 
       const { x, y } = getRelativeCoords(e);
       lastPosRef.current = { x, y };
+      currentPosRef.current = { x, y };
       mouseDownRef.current = true;
       // Save canvas state for shape preview
       if (['rect', 'circle', 'line'].includes(selectedTool)) {
@@ -367,6 +371,7 @@ const Canvas = () => {
   const onTouchEnd = (e) => {
     e.preventDefault();
     if (mouseDownRef.current && ['rect', 'circle', 'line'].includes(selectedTool)) {
+      const { x, y } = currentPosRef.current;
       // Emit shape data
       if (roomName) {
         socket.emit('shape', {
@@ -375,8 +380,8 @@ const Canvas = () => {
             type: selectedTool,
             startX: lastPosRef.current.x,
             startY: lastPosRef.current.y,
-            endX: lastPosRef.current.x,
-            endY: lastPosRef.current.y,
+            endX: x,
+            endY: y,
             shapeColor: color,
             lineWidth: penWidth
           }
@@ -389,6 +394,7 @@ const Canvas = () => {
   const onTouchMove = (e) => {
     e.preventDefault();
     const { x, y } = getRelativeCoords(e);
+    currentPosRef.current = { x, y };
 
     if (mouseDownRef.current && context) {
       const { x: prevX, y: prevY } = lastPosRef.current;
