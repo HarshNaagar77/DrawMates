@@ -78,6 +78,14 @@ io.on('connection', (socket) => {
         socket.to(roomName).emit('drawing', { drawingData });
     });
 
+    socket.on('shape', ({ roomName, shapeData }) => {
+        socket.to(roomName).emit('shape', { shapeData });
+    });
+
+    socket.on('sync-canvas', ({ roomName, dataUrl }) => {
+        socket.to(roomName).emit('sync-canvas', { dataUrl });
+    });
+
     // Listen for clear-canvas event and broadcast to room
     socket.on('clear-canvas', ({ roomName }) => {
         socket.to(roomName).emit('clear-canvas');

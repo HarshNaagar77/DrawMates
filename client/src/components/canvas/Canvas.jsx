@@ -12,6 +12,8 @@ const Canvas = () => {
   const [penWidth, setPenWidth] = useState(2);
   const [cursorPos, setCursorPos] = useState(null);
   const [roomCount, setRoomCount] = useState(1);
+  const [undoStack, setUndoStack] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
   const canvasParentId = 'canvas-parent';
   const canvasElementId = 'canvas-element';
   let DPR = window.devicePixelRatio || 1;
@@ -20,9 +22,42 @@ const Canvas = () => {
   const lastPosRef = useRef({ x: 0, y: 0 });
   const canvasImageRef = useRef(null); // Store canvas state for shape preview
 
+  const loadCanvasFromDataUrl = (dataUrl) => {
+    const img = new Image();
+    img.src = dataUrl;
+    img.onload = () => {
+      context.clearRect(0, 0, canvasDiv.width, canvasDiv.height);
+      context.drawImage(img, 0, 0, canvasDiv.width, canvasDiv.height);
+    };
+  };
+
+  const handleUndo = () => {
+    if (undoStack.length > 0) {
+      const currentState = canvasDiv.toDataURL();
+      setRedoStack(prev => [currentState, ...prev]);
+      const previousState = undoStack[undoStack.length - 1];
+      setUndoStack(prev => prev.slice(0, -1));
+      loadCanvasFromDataUrl(previousState);
+      if (roomName) socket.emit('sync-canvas', { roomName, dataUrl: previousState });
+    }
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length > 0) {
+      const currentState = canvasDiv.toDataURL();
+      setUndoStack(prev => [...prev, currentState]);
+      const nextState = redoStack[0];
+      setRedoStack(prev => prev.slice(1));
+      loadCanvasFromDataUrl(nextState);
+      if (roomName) socket.emit('sync-canvas', { roomName, dataUrl: nextState });
+    }
+  };
+
   const clearCanvas = () => {
     console.log('clearCanvas called', { context, canvasDiv, roomName });
     if (context && canvasDiv) {
+      setUndoStack((prev) => [...prev, canvasDiv.toDataURL()]);
+      setRedoStack([]);
       context.clearRect(0, 0, canvasDiv.width, canvasDiv.height);
       console.log('Canvas cleared');
     } else {
@@ -86,6 +121,22 @@ const Canvas = () => {
   }, []);
 
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          handleUndo();
+        } else if ((e.key === 'y') || (e.key === 'z' && e.shiftKey)) {
+          e.preventDefault();
+          handleRedo();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undoStack, redoStack, context, canvasDiv, roomName]);
+
+  useEffect(() => {
     if (!context) return;
     const handleDrawing = ({ drawingData }) => {
       const { prevX, prevY, x, y, color: remoteColor, lineWidth } = drawingData;
@@ -144,12 +195,25 @@ const Canvas = () => {
       }
     };
 
+    const handleSync = ({ dataUrl }) => {
+      if (context && canvasDiv) {
+        const img = new Image();
+        img.src = dataUrl;
+        img.onload = () => {
+          context.clearRect(0, 0, canvasDiv.width, canvasDiv.height);
+          context.drawImage(img, 0, 0, canvasDiv.width, canvasDiv.height);
+        };
+      }
+    };
+
     socket.on('drawing', handleDrawing);
     socket.on('shape', handleShape);
+    socket.on('sync-canvas', handleSync);
     socket.on('clear-canvas', handleClear);
     return () => {
       socket.off('drawing', handleDrawing);
       socket.off('shape', handleShape);
+      socket.off('sync-canvas', handleSync);
       socket.off('clear-canvas', handleClear);
     };
   }, [context, canvasDiv]);
@@ -212,6 +276,10 @@ const Canvas = () => {
 
   const onMouseDown = (e) => {
     if (context) {
+      // Save state for undo
+      setUndoStack((prev) => [...prev, canvasDiv.toDataURL()]);
+      setRedoStack([]);
+
       const { x, y } = getRelativeCoords(e);
       lastPosRef.current = { x, y };
       mouseDownRef.current = true;
@@ -294,6 +362,10 @@ const Canvas = () => {
   const onTouchStart = (e) => {
     e.preventDefault();
     if (context) {
+      // Save state for undo
+      setUndoStack((prev) => [...prev, canvasDiv.toDataURL()]);
+      setRedoStack([]);
+
       const { x, y } = getRelativeCoords(e);
       lastPosRef.current = { x, y };
       mouseDownRef.current = true;
@@ -459,6 +531,24 @@ const Canvas = () => {
             <span>{eraserSize}px</span>
           </label>
         )}
+        <button
+          className="canvas-toolbar-btn"
+          title="Undo"
+          onClick={handleUndo}
+          disabled={undoStack.length === 0}
+          style={{ opacity: undoStack.length === 0 ? 0.5 : 1 }}
+        >
+          <i className="bi bi-arrow-90deg-left"></i>
+        </button>
+        <button
+          className="canvas-toolbar-btn"
+          title="Redo"
+          onClick={handleRedo}
+          disabled={redoStack.length === 0}
+          style={{ opacity: redoStack.length === 0 ? 0.5 : 1 }}
+        >
+          <i className="bi bi-arrow-90deg-right"></i>
+        </button>
         <button
           className="canvas-toolbar-btn canvas-clear-btn"
           title="Clear Canvas"
